@@ -8,3 +8,7 @@
 *.synctex.gz
 *.bbl
 *.blg
+interp.hi
+interp.o
+survey.out
+interp
