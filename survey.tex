@@ -37,13 +37,18 @@
         tabsize=2
         }
 
-\newcommand{\matches}[0]{\ensuremath{\Xi}}
-\newcommand{\bind}[2]{\ensuremath{[#1/#2]}}
-
 \title{A Survey of Pattern Matching in General Purpose Programming Languages}
-\author{Matthew Roberts, Macquarie University }
-\author{??? }
 
+\author{Matthew Roberts}
+\email{matthew.roberts@mq.edu.au}
+\orcid{0000-0002-2553-6157}
+\affiliation{%
+  \institution{Macquarie University}
+  \city{Sydney}
+  \country{Australia}
+}
+
+\acmBooktitle{Computing Surveys}
 
 \begin{document}
 
@@ -54,7 +59,6 @@ We survey existing pattern matching mechanisms in general purpose programming la
 \maketitle
 
 \section{Introduction}
-\todo{ruby https://medium.com/cedarcode/ruby-pattern-matching-1e84cab3b44a}
 
 \emph{Pattern Matching} is a control-flow mechanism available in many programming languages. There are a wide variety of implementations and design choices, but no comprehensive discussion of the differences between these.  There is also no universally agreed definition of "pattern matching". 
 
@@ -84,7 +88,7 @@ Logic programming has a clear influence on early pattern matching formulations. 
 Thus we can see that early efforts in pattern matching were a mix of influeces from \emph{logic programming}, \emph{computer algebra}, and \emph{Landin's inspiration to algebraic data types}.  However, from here we will focus on the general purpose programming languages and leave discussions of computer algebra and logic languages to their own sections.
 Then followed explorations of evaluation order, and with those came lazy implementations of the same ideas \cite{augustsson_compiler_1984}.  It is at this point that the semantics of pattern matching started receiving more attention.  A particularly clear and influential treatment of pattern matching compilation was given by Augustsson during this period \cite{augustsson_compiling_1985}. \todo{get your marangret on here}
 
-\todo{John Darlington is responsible for the equational style we see in Haskell, which came via Miranda and SASL where Turner implemented them - see the lambda days talk https://www.youtube.com/watch?v=QVwm9jlBTik&t=1s.  Darlington (who was a PhD student of Burstall, implemented it in his langauge NPL (which became hope) in the early 70s - find a good ref for that please}
+\todo{John Darlington is responsible for the equational style we see in Haskell, which came via Miranda and SASL where Turner implemented them - see the lambda days talk.  Darlington (who was a PhD student of Burstall, implemented it in his langauge NPL (which became hope) in the early 70s - find a good ref for that please}
 
 \todo{KRC (turner) introduced guards}
 
@@ -142,9 +146,10 @@ Then followed explorations of evaluation order, and with those came lazy impleme
 \caption{Major events in the development of pattern matching}
 \end{wrapfigure}
 
-
-
 \subsection{Expressivity and Correctness}
+As pattern matching became routine in functional languages, people looked for ways to extend it and to bring it to other programming paradigms.  The fact that patterns were striclty tied to the methods of constructing data were addressed.  Proposals to allow arbitrary ways of matching on a value and deconstructing it were proposed.  Wadler's views \cite{wadler_views:_1987} were first and followed by XX XX XX.  Programmers wanting to use patterns in OO languages also realised they needed to allow the programmer to define deconstruction methods which could be employed in pattern matching.  The earliest attempts were XX and XX and XX.
+
+Also around this time, formal accounts of pattern matching semantics and accounts of computation centered around pattern matching were published.  
 
 \begin{itemize}
   \item First Class Patterns
@@ -176,9 +181,7 @@ Because we are working from a hypothetical general purpose (and Turing complete)
 I.e. If you can translate from one form to another without changing the evaluation or modifying the structure, then you have gained no expressiveness.  We assume the presence of language forms that are present in most languages so that if, for example, a pattern matching form can be reduced to some other form with the addition of an assignment statement, it is not considered an increase in expressiveness.
 
 \subsubsection{Beyond expressiveness}
-There are reasons beyond expressiveness to prefer one programming form over another; we don't address these.  We present the pattern matching forms that \emph{do} exist, for whatever reason, and place them in a loose lattice according to expressiveness.  It is left to the reader to decide if a particular pattern matching form is \emph{good} or not.  We note particularly that \emph{not} changing expressiveness between classes is not reason enough to reject one class of pattern matching forms.
-
-To support the reader in determining if a particular pattern matching form has benefits beyond expressiveness, we provide examples of each class drawn from published open-source code.
+There are reasons beyond expressiveness to prefer one programming form over another; but they are subjective and dependent on the programming community of practice.  We have focussed on expressiveness but don't neglect the subject experience of programming.  For each class of patterns we will include a \emph{discussion} section where we will address the subjective arguments.  It is left to the reader to decide if a particular pattern matching form is \emph{good} or not.  We note particularly that \emph{not} changing expressiveness between classes is not reason enough to reject one class of pattern matching forms.
 
 \subsection{Scope}
 We restrict ourselves to \emph{important}, \emph{commonly used}, or \emph{representative} examples in this paper.  We will also place a significant number of popular languages into the framework, even if only to note that they don't support pattern matching.
@@ -307,30 +310,45 @@ Pattern match constructs\footnote{A pattern match is an \lstinline{expression} i
 
 \begin{lstlisting}
 match expression with 
-    pattern$_1$ -> body$_1$
-    pattern$_2$ -> body$_2$
+    pattern$_1$ => body$_1$
+    pattern$_2$ => body$_2$
     ...
-    pattern$_n$ -> body$_n$
+    pattern$_n$ => body$_n$
 \end{lstlisting}
 or, equivalently
 
 $$
-\<match>\ e\ \<with>\ (p_i -> b_i)
+\<match>\ e\ \<with>\ (p_i => b_i)
 $$
 
 
 Where \lstinline{pattern$_i$} ($p_i$) can bind variables for use in \lstinline{body$_i$} ($b_i$) and where \lstinline{expression} ($e$) may take on any expression in the language.
 
+The different possible forms of pattern matching are captured in the different forms a pattern can take.  For each form, the semantics will be defined through the pattern match relation which states that expression $e$ matches with pattern $p$, giving variable subsitutions $\sigma$ if and only if there exists a $\sigma$ such that $e = \sigma p$.  I.e. it is possible to construct a sequence of variable for expression substitutions that make the pattern equal to the subject expression.
 
-The following relations are defined differently for different implementations:
-\begin{description}
-    \item [pattern] the form a pattern can take
-    \item [$p\ \matches\ v$] when a value matches a pattern
-    \item [\bind{p}{v}] The set of variable/expression substitutions that result from matching pattern $p$ to value $v$\todo{got to work out this value/expression thing here}.  We use the $/$ notation for the full set of substitutions resulting from a binding, which are given as $[x:=v, y:=w]$ when we need to show the parts of that set of substitutions, which are always variables to expressions \todo{really?  I am really thinking they might end up being variable to value.  Well, I think in many cases a value could contain an expression - best to be general I think}.
-\end{description}
+The small-step operational semantics of pattern matching are given in figure \ref{fig:small-step}.  Since these rely on the matching relation, the semantics are only partially defined until we complete that definition.  We will provide a different matching relation for each class of pattern matching we encounter.  The semantics described in figure \ref{fig:small-step} are that: the expression being scrutinised is evaluated until it is a value and then checked against each pattern from the top of the list to the bottom until one matches.  If none match, the result of the pattern is \lstinline{nil} where \lstinline{nil} is no-op in the case of a statement pattern, or some "null" value from the language in the case of an expression pattern.  These are strict semantics and thus are certainly not applicable in lazy languages like Haskell and Clean.  In those cases, the correct semantics are more subtle, but the difference does not affect our discussion.  Please note that the formal semantics provided here aim to be explicit but not necessarily universal.  What we mean by this is that there is great value in being precise in our discussion but that the variability in the languages we look at mean there is no semantics we can give that universally applies.  The semantics given in this paper will give the reader a way to precisely differentiate various pattern matching constructs, but do not provide a way to precisely recreate any particular language.
 
-The small-step operational semantics of pattern matching are given in figure \ref{fig:small-step} and are partially defined until matches and substitutions are defined.  The semantics described in figure \ref{fig:small-step} are that: the expression being scrutinised is evaluated until it is a value and then checked against each pattern from the top of the list to the bottom until one matches.  If none match, the result of the pattern is \lstinline{nil} where \lstinline{nil} is no-op in the case of a statement pattern, or some "null" value from the language in the case of an expression pattern.  These are strict semantics and thus are certainly not applicable in lazy languages like Haskell and Clean.  In those cases, the correct semantics are more subtle, but the difference does not affect our discussion.  Please note that the formal semantics provided here aim to be explicit but not necessarily universal.  What we mean by this is that there is great value in being precise in our discussion but that the variability in the languages we look at mean there is no semantics we can give that universally applies.  The semantics given in this paper will give the reader a way to precisely differentiate various pattern matching constructs, but do not provide a way to precisely recreate any particular language.
-
+\begin{figure}
+    \[
+    \inference[ESubject]
+    {e\ --> e'}
+    {\<match>\ e\ \<with>\ (p_i -> b_i)^{*} --> \<match>\ e'\ \<with>\ (p_i -> b_i)^{*}}\]
+    \[
+    \inference[EMatchSucc]
+    {\exists \sigma .\quad v = \sigma p1
+    }
+    {\<match>\ v\ \<with>\ (p_i -> b_i)^{*} --> \sigma b_1}
+    \]
+    \[
+    \inference[EMatchFail]
+    {\not \exists \sigma . \quad v = \sigma p1
+    }
+    {\<match>\ v\ \<with>\ (p_i -> b_i)^{*} --> \<match>\ v\ \<with>\ (p_2 -> b_2)^{*}}
+    \]
+        \caption{Partially defined operational semantics of pattern matching}
+        \label{fig:small-step}
+\end{figure}
+    
 \subsection{Patterns outside pattern matching}
 The most important part of a pattern matching system, and the axis on which we discriminate between them, is the patterns that can be used in discriminating between branches.  Thus, patterns themselves are interesting enough.  In some languages, patterns can exist outside a pattern matching form, most commonly in an assignment operation.
 
@@ -437,30 +455,15 @@ factorial n | n > 0 = n * factorial(n-1)
 \section{Classes of Pattern Matching}
 We now develop a lose lattice of \emph{pattern matching classes} and put each pattern matching implementation into one of these classes.  The ordering is based on the expressiveness (see section \ref{sec:express}).  All classes build from the base class \emph{basic} ($\mathbb{B}$) defined in figure \ref{sem:basic}.
 
-\subsection{Basic Pattern Matching $\mathbb{B} \succ \varnothing$}
+\subsection{The base language $\varnothing$}
+The case for no pattern matching is a hypothetical language (which we call $\varnothing$) with loops, conditionals, variables, integers, characters, strings, booleans, and a c-style switch statement.  Equivalently, it may be an applicative language with recursion, nested function definitions, variables, integers, characters, strings, booleans and a switch on integers only.
 
-Figure \ref{sem:basic} shows the pattern, matching, and binding definitions for the simplest pattern matching that fits our definition.  We call this \emph{basic} pattern matching ($\mathbb{B}$) and each language we see will build from this somehow.  The only way in which $\mathbb{B}$ differs from a c-style switch is the \emph{variable pattern}.
+In section ?? we will show how some classes of pattern matching can be compiled into this language, thus compiling the extra expressiveness away.  However, we will find that not all classes can be so compiled.
 
-\begin{figure}
-\[
-\inference[EScruit]
-{e\ --> e'}
-{\<match>\ e\ \<with>\ (p_i -> b_i)^{*} --> \<match>\ e'\ \<with>\ (p_i -> b_i)^{*}}\]
-\[
-\inference[EMatchSucc]
-{p_1\ \matches\ v
-}
-{\<match>\ v\ \<with>\ (p_i -> b_i)^{*} --> \bind{v}{p_1}b_1}
-\]
-\[
-\inference[EMatchFail]
-{!(p_1\ \matches\ v)
-}
-{\<match>\ v\ \<with>\ (p_i -> b_i)^{*} --> \<match>\ v\ \<with>\ (p_2 -> b_2)^{*}}
-\]
-    \caption{Partially defined operational semantics of pattern matching}
-    \label{fig:small-step}
-\end{figure}\todo{need a better notation for that $p_2 -> b_2$ thing.  The notation in the SML definition \lstinline{<blah bla>} might do the job}
+\subsection{Basic Pattern Matching $\mathbb{B} \equiv \varnothing$}
+
+Figure \ref{sem:basic} shows the pattern, matching, and binding definitions for the simplest pattern matching that fits our definition.  We call this \emph{basic} pattern matching ($\mathbb{B}$) and each language we see will build from this somehow.  The only way in which $\mathbb{B}$ differs from a c-style switch is the \emph{variable pattern} which can match on any datum in the language, primitive or user-defined.
+
 
 \begin{figure}
 \begin{align*}
@@ -469,53 +472,67 @@ Figure \ref{sem:basic} shows the pattern, matching, and binding definitions for 
 \end{align*}
 
 \begin{align*}
-    l\ & \matches\ l & \textrm{literal patterns match the equivalent literal values}\\
-    x\ & \matches\ e &\textrm{variables match anything}\\
-\end{align*}
-
-\begin{align*}
-    \bind{l}{e} &\ = []    & \textrm{no bindings}\\
-    \bind{x}{e} &\ = [x := e] & \textrm{$e$ is bound to $x$}
+    l\ & = [] l & \textrm{literal patterns match the equivalent literal values with no binding}\\
+    e\ & = [x := e] x &\textrm{variables match anything and cause the whole expression to bind to the variable}\\
 \end{align*}
 \caption{Basic pattern matching $\mathbb{B}$}
 \label{sem:basic}
 \end{figure}
 
 \subsubsection{Expressiveness}
-$\mathbb{B}$ is more expressive than c-style \lstinline{switch} and \lstinline{if} statements because (to qualify as pattern matching) it must admit literals from all datatypes representable in the language.  c-style \lstinline{switch} statements work only on integers and \lstinline{if} statements work only on booleans.  \todo{the variable part can be compiled away though right?}
+$\mathbb{B}$ is not more expressive than c-style \lstinline{switch} and \lstinline{if} statements despite the fact that (to qualify as pattern matching) it must admit literals from all datatypes representable in the language.  c-style \lstinline{switch} statements work only on integers and \lstinline{if} statements work only on booleans.
+
+\emph{In practice} all languages admit equality on all literal values in the langauge.  I.e. if the langauge supports integers, strings, characters, booleans, and vectors, then it will have a boolean-equality operation for each of these.  In most cases this is the overriden \lstinline{==} operator.  This allows a translation from $\mathbb{B}$ to $\varnothing$ by converting the match into a series of nested if-statements with the one and only variable match being the final else.
+
+Note that there can only be one reachable variable case in basic matching since that variable \emph{will} match everything, making further cases redundant.
 
 \subsubsection{Exemplar}
 
-Note: we choose an exemplar that does not discriminate on integers, characters, or booleans to highlight the difference from \lstinline{switch} and \lstinline{if} statements.  
+Consider a function to convert colours (as strings) to an integer representing that colour's red component.
 \begin{lstlisting}
-match f with
-  0.0 -> "nothing"
-  
+match c with
+  "red"    => 255
+  "pink"   => 243
+  "orange" => 197
+  "brown"  => 180
+  x        => 0  
 \end{lstlisting}
+The translation of this snippet into $\varnothing$ shows improvements but not \emph{expressive improvments}.  The translated form is structurally equivalent and the translation can be done locally.
+\begin{lstlisting}
+if (c == "red")
+  255
+else if (c == "pink")
+       243
+     else if (c == "orange")
+            197
+          else if (c == "brown")
+                 180
+               else 
+                 0
+\end{lstlisting}
+    
+\subsubsection{Discussion}
+Ther remain developers sceptical about pattern matching and we think the elucidation of class $\mathbb{B}$ might give some indication as to why.  If a developer thinks only of this form of pattern matching, then they see no improvements to expressiveness and the discussion hinges on the subjective value of the alternative form it allows.  We think the argument is stronly in favour of basic patterns admitting a simpler style of programming but we also understand why the case is harder to make without real improvements to expressiveness.
 
-\todo{factorial example?}
-
-\subsubsection{Case Study}
-
-\subsection{Wildcards and Guards $\mathbb{S} \equiv \mathbb{B} \succ \varnothing$}
+\subsection{Wildcards and Guards $\mathbb{S} \equiv \mathbb{B} \equiv \varnothing$}
 Two extensions of class $\mathbb{B}$ which can be classified as "syntatic sugar" are \emph{wildcards} and \emph{guards}.  A wildcard pattern is one that always matches and binds nothing.  It is equivalent to a variable pattern that is bound but never used.  A guard is a boolean expression that can be attached to a pattern and restricts the situations in which it matches.  The pattern itself may match, but if the guard evaluates to false it is considered to not have matched.  Adding wildcards and guards to class $\mathbb{B}$ brings us to class $\mathbb{S}$\footnote{$\mathbb{S}$ for "sugar"}, which is formally defined in figure \ref{sem:sugar}
 
 \begin{figure}
 \begin{align*}
 \<pattern> =\ & \mathbb{B} & \textrm{all from basic pattern matching}\\
-              & p\ |\ b.   & \textrm{guarded pattern}\\
+              & p\ |\ b    & \textrm{guarded pattern}\\
               & \_         & \textrm{wildcard pattern}
 \end{align*}
 
-\begin{align*}
-    p\ | b\ & \matches\ x\ \textrm{if}\ p\ \matches\ x\ \textrm{and}\ b\ \textrm{is true} &\\
-    \_\ & \matches\ e &\textrm{wildcard matches anything}\\
-\end{align*}
+    \[
+    \inference[PGuard]{e = \sigma p \wedge   b}
+    {e = \sigma (p\ | b)} 
+    \]
+    \[
+    \inference[PWildcard]{}
+    {e = [] \_}
+    \]
 
-\begin{align*}
-    \bind{p\ |\ b}{e} &\ = \bind{p}{e}    & \textrm{note that binding are available in $b$}\\
-    \bind{\_}{e} &\ = [] & \textrm{no bindings}
-\end{align*}
 \caption{Sugared basic pattern matching $\mathbb{S}$}
 \label{sem:sugar}
 \end{figure}
@@ -523,64 +540,84 @@ Two extensions of class $\mathbb{B}$ which can be classified as "syntatic sugar"
 
 \subsubsection{Exemplar}
 
-Consider code to assign a letter grade from a numerical grade.  Grades below 50 should be assigned the grad "F", grades between 50 and 64 should be assigned "P", between 65 and 75 is "CR", between 75 and 85 is "D" and greater than 85 is "HD".  Were we to write this with pattern matching in class $\mathbb{B}$, we would require 100 separate cases, one for each possible input, plus a variable pattern for \emph{out of range} inputs.  Guards allow pattern matching to be used more effectively:
+Consider code to assign a letter grade from a numerical grade.  Grades below 50 should be assigned the grad "F", grades between 50 and 64 should be assigned "P", between 65 and 75 is "CR", between 75 and 85 is "D" and greater than 85 is "HD".  In all cases, the original numerical grade should be included in the returned string.  Were we to write this with pattern matching in class $\mathbb{B}$, we would require 100 separate cases, one for each possible input, plus a variable pattern for \emph{out of range} inputs.  Guards allow pattern matching to be used more effectively:
 
 \begin{lstlisting}
 match input with
-  x | x < 0 -> "ERROR"
-  x | x < 50 -> "F"
-  x | x < 65 -> "CR"
-  x | x < 75 -> "P"
-  x | x < 85 -> "D"
-  x | x <= 100 -> "HD"
-  _ -> "ERROR"
+  x | x < 0 -> "ERROR {x}" 
+  x | x < 50 -> "F {x}" 
+  x | x < 65 -> "CR {x}"
+  x | x < 75 -> "P {x}"
+  x | x < 85 -> "D {x}"
+  x | x <= 100 -> "HD {x}"
+  _ -> "ERROR {x}"
 \end{lstlisting}
 
-\subsubsection{Case Study}
+\subsubsection{Expressiveness}
 
-\subsection{Type Matching $\mathbb{T} \succ \mathbb{S} \equiv \mathbb{B} \succ \varnothing$}
+To demonstrate that class $\mathbb{S}$ is not more expressive than $\mathbb{B}$ we give a general translation scheme between the two. 
+
+\[
+\<match>\ v\ \<with>\ (p1\ |\ g => b1)::(p_i => b_i) \rightarrow \<match>\ v\ \<with>\ p1 => if\ g\ then\ b1\ else\ (\<match>\ v\ \<with>\ (p_i => b_i)) 
+\]
+
+\subsubsection{Discussion}
+The addition of guards greatly expands the use of variable patterns since there is now a reason to have more than one variable pattern in a row.  Guards emerged from langauges which aimed to support the equational reasoning style of function definition combined with a line-oriented programmings style \cite{turner_history_2013}\todo{note: I actaully got this from the codemesh talk in 2017 (47 minutes in)}.  Such a programming style is long-since lost to history but guards persist, presumably because they are popular with programmers.  Wildcards have been present from the very start of pattern matching but we've never seen it motivated beyond the fact that you might not want to make up a variable name unecessarily.  We are barely crawling foward in terms of expressiveness but as soon as we admit some type of nested patterns, these small changes will start of have big effects.
+
+\subsection{Type Matching $\mathbb{T} \succ \mathbb{S} \equiv \mathbb{B} \equiv \varnothing$}
 Admitting \emph{types} to the allowed patterns brings us into class $\mathbb{T}$\footnote{$\mathbb{T}$} (for "type"), shown in Figure \ref{sem:type}. 
 
 \begin{figure}
 \begin{align*}
-\<pattern> =\ & l & \textrm{literal patterns}\\
-              & x & \textrm{variable patterns} \\
-              & x@T & \textrm{type pattern} 
+\<pattern> ==\ & \mathbb{B} & \textrm{all from basic pattern matching}\\
+              & x\ \textrm{as}\ T & \textrm{type pattern} 
 \end{align*}
 
-\begin{align*}
-    l\ & \matches\ l & \textrm{literal patterns match the equivalent literal values}\\
-    x\ & \matches\ e &\textrm{variables match anything}\\
-    x@T\ & \matches\ e\ \textrm{iff e is an expression of type T at run time} & \textrm{types match values within them}
-\end{align*}
+\[
+    \inference[PType]{}
+    {e = [x := (T)e](x\ \textrm{as}\ T } 
+    \]
 
-\begin{align*}
-    \bind{l}{e} &\ = []    & \textrm{no bindings}\\
-    \bind{x}{e} &\ = [x := e] & \textrm{$e$ is bound to $x$} \\
-    \bind{x@T}{e} &\ = [x := e] & \textrm{$e$ is bound to $x$}
-\end{align*}
 \caption{Type pattern matching $\mathbb{T}$}
 \label{sem:type}
 \end{figure}
 
-Class $\mathbb{T}$ is best seen as a way to extend an object oriented language to allow a switch-like mechanism on the type of a value.  In the presence of sub-typing, a pattern will match for values in type T and all sub-types of T, this is a choice of the language designer, but the alternatives are not appealing.  The drop-down semantics of pattern matching play a role where there is sub-typing because type patterns might overlap and the first valid one will drive execution.
+Class $\mathbb{T}$ is best seen as a way to extend an object oriented language to allow a switch-like mechanism on the type of a value.  As well as selecting which branch to take, the variable which is bound in the pattern is given an updated type in the body of the pattern.  So the type is used to choose a branch and to cast the expression into that type.
 
 Note that type pattern matching requires run-time type information.  For this reason, it is rarely available in functional programming languages \todo{rarely or never?}.
 
-All uses of this pattern we have seen will allow the user to treat $x$ as being of type $T$ in the body of that pattern.  I.e. it is a way of creating a new variable for a value with a different set type.  Because pattern matching includes a default case, the construct is considered "safe".
-
-\subsubsection{"as" patterns}
-
-To support the existence of the new variable with the set type, the pattern includes that  new variable ($x$ in $x@T$).  More generally, this is called an "as pattern" and should be read "x as T".  It is common for as patterns to be combined with other patterns even where type matching is not required as it is an easy extension and seems to be appreciated by programmers.  We will discuss further in section ??.
-
 \subsubsection{Expressiveness}
 
-In languages with type pattern matching, there is usually an \lstinline{instanceof} operation that can return a representation of a type.  Class $\mathbb{T}$ pattern matching can be emulated with such an operation so it would not provide more expressiveness in those languages.  Regardless, we consider it an expressive improvement because we don't assume the presence of \lstinline{instanceof}.
+In languages with type pattern matching, there is usually an \lstinline{instanceof} operation that can return a representation of a type.  Class $\mathbb{T}$ pattern matching can be emulated with such an operation so it would not provide more expressiveness in those languages.  Regardless, we consider it an expressive improvement because we don't assume the presence of \lstinline{instanceof} in our language.  For language which have \lstinline{instanceof} and type casting operations, the translation in scheme in figure \ref{trans:type} will suffice to convert type patterns into a the base language.
+
+\begin{figure}
+    \begin{minipage}[t]{0.4\linewidth}
+    \begin{lstlisting}[language=C]
+    match e with {
+        x as T => B
+        ...
+    }
+    \end{lstlisting}
+    \end{minipage}
+    \begin{minipage}[t]{0.4\linewidth}
+    \begin{lstlisting}
+    if e instanceof T {
+        x = (T)e
+        B
+    } else {
+        ...
+    }
+    \end{lstlisting}
+    \end{minipage}
+    \caption{A translation scheme to convert from class $\mathbb{T}$ to class $\varnothing$}
+    \label{trans:type}
+    \end{figure}
+        
 
 \subsubsection{Subsumption of overloading}
 Once type matching is available, pattern matching can subsume \emph{overloading}.  Each overloaded version of a function can be considered a branch of a top-level pattern match.  Figure \ref{}
 
-begin{figure}
+\begin{figure}
 \begin{minipage}[t]{0.45\linewidth}
 \begin{lstlisting}[language=C]
 plus(int i, int j){
@@ -596,7 +633,7 @@ plus(float i, float j){
 still to do
 \end{lstlisting}
 \end{minipage}
-\caption{Converting this well known switch statement \cite{kernighan_c_1988} to a pattern match is verbose, but simple}
+% \caption{Converting this well known switch statement \cite{kernighan_c_1988} to a pattern match is verbose, but simple}
 \label{fig:kar_switch}
 \end{figure}
 
@@ -608,7 +645,7 @@ still to do
 \subsubsection{Case Study}
 
 \subsubsection{In the Wild}
-It is not difficult to find examples of class $\mathbb{T}$ pattern matching in object-oriented languages.  Figure \ref{lst:wild_t} shows examples from open source Scala code and from a language extension proposal\cite{Bierman18} for java.  In the proposed Java example, the as variables are required but they are optional as demonstrated in  Scala.  Scala supports as patterns generally so they can be added to types when required.
+It is not difficult to find examples of class $\mathbb{T}$ pattern matching in object-oriented languages.  Figure \ref{lst:wild_t} shows examples from open source Scala code and from a language extension proposal\cite{Bierman18} for java.  In the proposed Java example, the as variables are required but they are optional as demonstrated in  Scala.
 
 \begin{figure}
 \hspace{-4em}
@@ -657,28 +694,130 @@ String formatted =
 \label{lst:wild_t}
 \end{figure}
 
-\subsection{Constructor Matching $\mathbb{C} \succ \mathbb{S}$, $\mathbb{C} \succ \mathbb{T}$}
-Admitting \emph{constructor patterns} brings us to class $\mathbb{C}$.  A constructor pattern is one a value is matched according to its means of construction.  This has different meanings depending on the data and type system of the language.  The two main variants are algebraic data types (ADTs) and object oriented systems (OO):
-\begin{description}
-    \item[Constructor Patterns for ADTs] Any new datum is "witnessed" by a constructor tag which uniquely identifies it within the type and has a fixed arity.  A constructor pattern $C p_1 ... p_n$ matches a value $v$ iff that value was constructed (at the top level) with the tag $C$.
-    \item[Constructor Patterns for OO] Any new datum (an object) is created by running a constructor function.  Constructor functions are unique by \emph{signature}\footnote{signature is the arity and order of argument types}.  An object $v$ will match pattern $C p_1 ... p_n$ if the constructor function $C$ was used to build it.
-\end{description}
+\subsection{Tuple matching $\mathbb{*} \succ \mathbb{S}$, $\mathbb{*} \succ \mathbb{T}$}
 
-\subsubsection{Recursive}
+A tuple match allows more than one pattern to be checked at one time.  Both must match for the pattern match to succeed.  The equational form of function definition is effectively tuple matching and thus it is present in most functional languages.  Languages based on ML tend to make the tuple explicit whereas langauges from the HOPE lineage tend to support a style of match syntax that makes the tuple implicit.  The exemplar in figure \ref{lst:tuple_patterns} shows the two forms.  Each separate type-type (i.e. 2-tuples, 3-tuples, etc) needs to be added to the language.  Langauge designers or compiler writers will generate x-tuple definitions up to a certain limit deemed large enough for any practical use\footnote{for example, Haskell sets the limit to a minimum of 15 but ultimately the compiler is free to increase this for all tuples or for tuples created in the translation of equational function definitions}.
 
-Note that constructor patterns have arguments.  They must as the arguments are an integral part of the construction process.  Thus we must characterise what can be put in an argument position.  Is is a value, variable, any other pattern?  All these choices are possible but we start with the most general and powerful alternative; aribitrary patterns.  We know of no languages that don't fit into $\mathbb{T}$ but have some restriction on what can be put in the argument positions of a constructor pattern.
+\begin{figure}
+  \begin{align*}
+  \<pattern> ==\ & \mathbb{S} & \textrm{all from sugared pattern matching}\\
+                & (pattern, pattern) & \textrm{2-tuple pattern}) \\
+                & (pattern, pattern, pattern) & \textrm{3-tuple pattern}) \\
+                & \dots & \textrm{and so on up to a predefined limit}
+  \end{align*}
+  
+  \[
+      \inference[PTuple]{e is a 2-tuple (e_1, e_2) \quad e_1 = \sigma_1 p_1 \quad e_2 = \sigma_2 p_2 \quad disjoint(dom(\sigma_1), dom(\sigma_2))}
+      {e = (\sigma1 \circ \sigma_2)(p_1,p_2)  } 
+      \]
+  
+  \caption{Tuple pattern matching $\mathbb{*}$}
+  \label{sem:type}
+  \end{figure}
+  
+\subsection{Discussion}
+
+Tuple patterns with type patterns complete the subsumption of overloading.  With type matching, single argument overloaded functions could be encoded with pattern matching.  With tuples, multi-parameter functions can also be encoded as pattern match functions.
+
+A useful way to think of tuple matching is that is moves pattern matching from \emph{one subject and a list of patterns} to \emph{a list of subjects and a matrix of patterns}.  This view is core the compilation of pattern matching algorithms w see in section ??.
+
+\begin{figure}
+\begin{minipage}[t]{0.45\linewidth}
+\begin{lstlisting}[basicstyle=\small\ttfamily]
+pow (a,b) = 
+  match (a,b) with {
+    (x, y) | y < 0 = 0
+    (x, 0)  = 1
+    (x, y)  = x * pow(x,y-1)
+\end{lstlisting}
+\end{minipage}
+\hspace{2em}
+\begin{minipage}[t]{0.45\linewidth}
+\begin{lstlisting}[basicstyle=\small\ttfamily]
+pow x y | y < 0 = 0 
+pow x 0 = 1
+pow x y = x*(pow x (y-1))
+\end{lstlisting}
+\end{minipage}
+\caption{ML style (left) and Hasekll style (right) tuple matcing syntax}
+\label{lst:tuple_patterns}
+
+\subsubsection{Nested Patterns}
+
+The introduction of tuple patterns forces the introduction of \emph{nested} or \emph{recursive} patterns.  Since tuples take arguments, argument slots in the tuple pattern must be characterised.  One could consider a system where only literals, variables, etc were permitted in these slots but that approach is not taken in practice.   In practice, each tuple slot can have a pattern of its own, meaning any patterns can nest inside tuple patterns.
 
 The move to recursive patterns (i.e. patterns that contain other patterns) is a significant increase in expressiveness.  We will witness another such large jump when we admit patterns that might need evaluation.
 
+\end{figure}
+
+\subsection{Constructor Matching $\mathbb{C} \succ \mathbb{*} \succ \mathbb{S}$, $\mathbb{C} \succ \mathbb{*} \succ \mathbb{T}$}
+Admitting \emph{constructor patterns} brings us to class $\mathbb{C}$.  A constructor pattern is one a value is matched according to its means of construction.  This has different meanings depending on the data and type system of the language.  The two main variants are algebraic data types (ADTs) and object oriented systems (OO):
+\begin{description}
+    \item[Constructor Patterns for ADTs] Any new datum is "witnessed" by a constructor tag which uniquely identifies it within the type and has a fixed arity.  A constructor pattern $C p_1 ... p_n$ matches a value $v$ iff that value was constructed (at the top level) with the tag $C$.
+    \item[Constructor Patterns for OO] Any new datum (an object) is created by running a constructor function.  Constructor functions are unique by \emph{signature}\footnote{signature is the arity and order of argument types}.  The rules for matching OO constructors, which are arbitraty functions, vary greatly and we discuss them in a separate section \ref{sec:oo_constructors} after we have discussed other evaluative patterns.
+\end{description}
+
+Constructors for Algebraic Data Types are fundamentally different from constructors in OO languages.  We will find that OO constructor patterns are more correctly dealt with in the \emph{evaluative} pattern class $\mathbb{E}$ and thus the remainder of this section is concerned only with constructor pattern matching for algebraic data types.
+
+It is necessary that we build on class $\mathbb{*}$ since the decomposition of constructor patterns requires tuple matching.  That necessity is not visible to the user of constructor matching but the compiler or interpreter need the concept and the semantics of tuple matching to be resolved before the semantics of constructor matching can be codified.
+
+\subsubsection{What makes a constructor?}
+we have said above that this class only applies to algebraic data types, but the reality is more subtle.  ADT constructors can be considered from two points of view:
+
+\begin{description}
+  \item[Tags] A constructor is a unique (to that type in strictly typed languages, globally in dynamically typed languages) tag attached to a tuple of arguments.  The presense of the tag assures the number, order, and type of arguments.
+  \item[An uninterpreted function] A constructor is a special type of function which returns an unnammed and uncharacterised value.  The compiler will provide a \emph{reverse} function to recover the original arguments from such a value.
+\end{description}
+In the tag view, a constructor pattern is a pattern representing exactly the tag in question.  In many languages the tag can be an integer in practice which means constructor matching ends up being compiled to a switch on an integer.  
+
+Under the function view, the constructor pattern is actually the reverse function and provides the values to be bound against the arguments.
+
+The choice to use the same syntax for construction and pattern matching, which we see in all modern implmenetations of pattern matching, was not inevitable.  One can consider alternatives, but this system became the standard very early.  When we extend to evaluative patterns we will see schemes that can support constructors that are arbitrary functions (rather than uninterpreted functions).  There the tag view is innapropriate and programmers have the functional view more in the front of mind.  The syntax equivalence in that context was called \emph{punning} by Bloom and Hirzel \cite{bloom_robust_2013}.
+
 \subsubsection{Exemplar}
+If natural numbers are considered from the constructive point of view, they are either a Zero element, or a successor of some other natural number, as given in the following Haskell notation
+\begin{lstlisting}
+data Nat = Zero 
+         | Succ Nat
+\end{lstlisting}
 
+We can add two such natural numbers with the following recusive function
+\begin{lstlisting}
+plus (a,b) = 
+  match (a,b) with
+    (Zero, x) => x
+    (x, Zero) => x
+    (Succ(n), x) => Succ(plus(n,x))
+\end{lstlisting}
 
-\subsubsection{Case Study}
+\subsubsection{Discussion - Importance in Interactive Theorem Proving}
 
-\todo{haven't got one yet}
+\subsubsection{Discussion - OO}
+\label{sec:oo_constructors}
+
+In the OO world, constructors are full functions while in the ADT world they are uninterpreted functions.  This causes significant difficulty for OO languages introducing constructor matching.  Each deals with the situation slightly differently.
+
+Scala (via case classes) chooses to automatically construct constructors and destructors which act as inverses of each other, effectively recovering the uninterpreted functions of the ADT world.  Scala does also allow the programmer to create their own full constructor functions but they then need to provide a desctructor function to match each one.  This is a very flexible approach that actually moved into the class \emph{evaluative patterns} as a way of solving the OO constructor pattern problem
+
+Python mixes constructor patterns with type patterns.  A constructor pattern will match if the subject is of the type named by the constructor (all constructors introduce a type) \emph{and} its fields can be mapped to each subpattern.
+
+Note that all these solutions are forced because the construction of data is not necessarily mapped to the structure of data in an OO language.  This is a theme we will revisit in section ?? and each of those types of patterns are possible solutions to the OO constructor pattern problem as well.
 
 \subsection{Evaluative Patterns $\mathbb{E} \succ \mathbb{C}$}
 \label{sec:evaluative}
+
+Evaluative patterns arose due to two similar motivations:
+\begin{itemize}
+  \item Functional programmers recognised that data encapsulation was not compatible with constructor patterns and created ways to get \emph{views} of ADT data while hiding internal details \cite{wadler_views:_1987}.
+  \item Object Oriented programmers wanted the benefits of pattern matching in their languages \todo{What is the earliest here?}.
+\end{itemize}
+The larger picture here was attempts to solve \emph{expression problem}.  It was recognised that the ADTs of functional programming allowed extension of API more easily than extensions of data forms while OO languages achieved the opposite.  There were copius examples of problems better expressed in one than the other that each paradigm wanted to achieve. \todo{find a concrete early example to talk about please.  I actually think this might be a stretch and that I am better off ignoring it.}
+
+\subsubsection{From the ADT point of view}
+For ADT programmers, the reversability of constructor "functions" breaks encapsulation.  They sought a way to deconstruct an abstract type separately from how it was constructed.  This had the advantage of allowing more flexibility in deconstruction. Constructors are disjoint and unique but more general systems could allow multiple ways to deconstruct the same datum.  
+
+\subsubsection{From the OO point of view}
+
 \subsubsection{Exemplar}
 \subsubsection{Case Study}
 
